@@ -29,6 +29,7 @@ volFunc = 's5.wdrf.tf';% 'wdrf.tf';
 hemis = {'lh' 'rh'};
 pRFmem = 30; % memory for cluster
 pRFmaps = {'co' 'coecc' 'copol' 'copeakt' 'cosig1' 'cosig2' 'cosig3' 'cosig4'};
+tDirName = 'coarse_model_templates_V2V3size';
 %% Run preprocessing
 for ss = 1:length(sessions)
     session_dir = sessions{ss};
@@ -333,13 +334,13 @@ mkdir(fullfile(templateDir,'anat_templates'));
 system(['cp ~/data/2014-10-29.areas-template.nii.gz ' ...
     fullfile(templateDir,'anat_templates','lh.areas.anat.nii.gz')]);
 %% Convert fsaverage_sym templates to nifti (coarse)
-template_dir = fullfile(templateDir,'pRFs','coarse_model_templates');
-convert_Mathematica_templates(templateDir,template_dir);
+tDir = fullfile(templateDir,'pRFs',tDirName);
+convert_Mathematica_templates(templateDir,tDir);
 
 %% Project fsaverage_sym templates to subject space (coarse)
 % This will create scripts to project the templates from the fsaverag_sym
 % surface to the individual subject surfaces
-tDir = fullfile(templateDir,'pRFs','coarse_model_templates');
+tDir = fullfile(templateDir,'pRFs',tDirName);
 tFiles = listdir(fullfile(tDir,'*.nii.gz'),'files');
 hemis = {'lh' 'rh'};
 srcsubject = 'fsaverage_sym';
@@ -348,10 +349,10 @@ for ss = 1:length(sessions)
     session_dir = sessions{ss};
     subject_name = subjects{ss};
     submit_name = jobNames{ss};
-    outDir = fullfile(session_dir,'project_templates_scripts');
+    outDir = fullfile(session_dir,[tDirName '_scripts']);
     system(['rm -rf ' outDir]);
     mkdir(outDir);
-    sDir = fullfile(session_dir,'pRFs','coarse_model_templates');
+    sDir = fullfile(session_dir,'pRFs',tDirName);
     system(['rm -rf ' sDir]);
     mkdir(sDir);
     job_string = cell(1,length(tFiles)*2);
@@ -384,7 +385,7 @@ end
 for ss = 1:length(sessions)
     session_dir = sessions{ss};
     subject_name = subjects{ss};
-    tDir = fullfile(session_dir,'pRFs','coarse_model_templates');
+    tDir = fullfile(session_dir,'pRFs',tDirName);
     decimate_templates(subject_name,tDir);
 end
 %% Decimate the bold runs
@@ -394,8 +395,9 @@ for ss = 1:length(sessions)
     decimate_bold(session_dir,subject_name,volFunc);
 end
 %% Create cluster shell scripts (pRF,anat,coarse)
-tTypes = {'anat' 'pRF' 'coarse'};
-fitTypes = {'V1' 'V2V3'};
+%tTypes = {'anat' 'pRF' 'coarse' 'coarseV2V3size'};
+tTypes = {'coarseV2V3size'};
+fitTypes = {'V1' 'V2V3' 'V2V3size'};
 for ff = 1:length(fitTypes)
     fitType = fitTypes{ff};
     for tt = 1:length(tTypes)
@@ -428,14 +430,15 @@ script_dirs = {...
     };
 logDir = '/data/jet/abock/LOGS';
 hemis = {'lh' 'rh'};
-fitTypes = {'V1' 'V2V3'};
+%fitTypes = {'V1' 'V2V3'};
+fitTypes = {'V2V3'};
 for ff = 1:length(fitTypes)
     fitType = fitTypes{ff};
-    for ss = 1:length(script_dirs)
+    for ss = 3%:length(script_dirs)
         script_dir = script_dirs{ss};
         cDirs = listdir(script_dir,'dirs');
-        for i = 1:length(cDirs);
-            if strcmp(cDirs{i},'anat') || strcmp(cDirs{i},'coarse')
+        for i = 3 % 1:length(cDirs);
+            if strcmp(cDirs{i},'anat') || strcmp(cDirs{i},'coarse') || strcmp(cDirs{i},'coarseV2V3size')
                 for hh = 1:length(hemis)
                     hemi = hemis{hh};
                     system(['rm -rf ' logDir]);
@@ -482,7 +485,8 @@ for ff = 1:length(fitTypes)
 end
 %% Find the best template (coarse)
 hemis = {'lh' 'rh'};
-templateType = 'coarse';
+%templateType = 'coarse';
+templateType = 'coarseV2V3size';
 func = 's5.wdrf.tf';
 fitTypes = {'V2V3'};%{'V1' 'V2V3'};
 for ss = 1:length(sessions)
@@ -504,7 +508,7 @@ for ss = 1:length(sessions)
                 end
                 disp(varexp);
             else
-                [varexp,params,sorted_templates] = find_best_template(templateType,tDir,hemi,[],[],[],fitType);
+                [varexp,params,sorted_templates] = find_best_template(templateType,tDir,hemi,fitType);
                 disp(params(1));
                 disp(sorted_templates(1));
                 disp(varexp(1));
