@@ -334,8 +334,11 @@ mkdir(fullfile(templateDir,'anat_templates'));
 system(['cp ~/data/2014-10-29.areas-template.nii.gz ' ...
     fullfile(templateDir,'anat_templates','lh.areas.anat.nii.gz')]);
 %% Convert fsaverage_sym templates to nifti (coarse)
+mem = 10;
+outDir = fullfile(templateDir,'convertTemplateScripts');
 tDir = fullfile(templateDir,'pRFs',tDirName);
-convert_Mathematica_templates(templateDir,tDir);
+create_convert_Mathematica_template_scripts(outDir,logDir,templateDir,tDir,mem);
+% convert_Mathematica_templates(templateDir,tDir);
 
 %% Project fsaverage_sym templates to subject space (coarse)
 % This will create scripts to project the templates from the fsaverag_sym
