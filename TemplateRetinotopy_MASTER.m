@@ -382,15 +382,24 @@ for ss = 1:length(sessions)
 end
 %% Run the above shell scripts
 %   for example:
-%   sh /data/jet/abock/data/Retinotopy_Templates/AEK/10012014/project_templates_scripts/A100114K.sh
+%   sh /data/jet/abock/data/Retinotopy_Templates/GKA/10152014/coarse_model_templates_V2V3size_scripts/G101514A.sh
 
 %% Decimate the templates (coarse)
 for ss = 1:length(sessions)
-    session_dir = sessions{ss};
-    subject_name = subjects{ss};
-    tDir = fullfile(session_dir,'pRFs',tDirName);
-    decimate_templates(subject_name,tDir);
+    params.outDir       = fullfile(sessions{ss},['decimate_' tDirName '_scripts']);
+    if ~exist(params.outDir,'dir')
+        mkdir(params.outDir);
+    end
+    params.logDir       = logDir;
+    params.subjectName  = subjects{ss};
+    params.templateDir  = fullfile(sessions{ss},'pRFs',tDirName);
+    params.mem          = 5;
+    create_decimate_template_scripts(params);
 end
+
+% submit the scripts generate by the above 
+
+
 %% Decimate the bold runs
 for ss = 1:length(sessions)
     session_dir = sessions{ss};
