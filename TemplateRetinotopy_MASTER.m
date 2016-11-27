@@ -340,6 +340,8 @@ tDir = fullfile(templateDir,'pRFs',tDirName);
 create_convert_Mathematica_template_scripts(outDir,logDir,templateDir,tDir,mem);
 % convert_Mathematica_templates(templateDir,tDir);
 
+%%% submit the scripts above %%%
+
 %% Project fsaverage_sym templates to subject space (coarse)
 % This will create scripts to project the templates from the fsaverag_sym
 % surface to the individual subject surfaces
@@ -387,9 +389,8 @@ end
 %% Decimate the templates (coarse)
 for ss = 1:length(sessions)
     params.outDir       = fullfile(sessions{ss},['decimate_' tDirName '_scripts']);
-    if ~exist(params.outDir,'dir')
-        mkdir(params.outDir);
-    end
+    system(['rm -rf ' params.outDir]);
+    mkdir(params.outDir);
     params.logDir       = logDir;
     params.subjectName  = subjects{ss};
     params.templateDir  = fullfile(sessions{ss},'pRFs',tDirName);
@@ -397,8 +398,7 @@ for ss = 1:length(sessions)
     create_decimate_template_scripts(params);
 end
 
-% submit the scripts generate by the above 
-
+%%% submit the scripts above %%%
 
 %% Decimate the bold runs
 for ss = 1:length(sessions)
@@ -409,23 +409,22 @@ end
 %% Create cluster shell scripts (pRF,anat,coarse)
 %tTypes = {'anat' 'pRF' 'coarse' 'coarseV2V3size'};
 tTypes = {'coarseV2V3size'};
-fitTypes = {'V1' 'V2V3' 'V2V3size'};
+fitTypes = {'V1' 'V2V3'};
 for ff = 1:length(fitTypes)
-    fitType = fitTypes{ff};
     for tt = 1:length(tTypes)
         tcPart = 'full';
         leaveOut = '0';
-        if strcmp(fitType,'V2V3')
+        if strcmp(fitTypes{ff},'V2V3')
             V2V3 = '1'; % '0' = V1-V2, V1-V3; '1' = V1-V2, V1-V3, V2-V3
         else
             V2V3 = '0'; % '0' = V1-V2, V1-V3; '1' = V1-V2, V1-V3, V2-V3
         end
         for ss = 1:length(sessions)
             session_dir = sessions{ss};
-            outDir = fullfile(session_dir,'fit_template_scripts',tTypes{tt},fitType,volFunc);
+            outDir = fullfile(session_dir,'fit_template_scripts',tTypes{tt},fitTypes{ff},volFunc);
             system(['rm -rf ' outDir]);
             mkdir(outDir);
-            saveDir = fullfile(session_dir,'pRFs',tTypes{tt},volFunc,'Movie',fitType);
+            saveDir = fullfile(session_dir,'pRFs',tTypes{tt},volFunc,'Movie',fitTypes{ff});
             system(['rm -rf ' saveDir]);
             mkdir(saveDir);
             runs = movieRuns{ss};
@@ -435,61 +434,46 @@ for ff = 1:length(fitTypes)
     end
 end
 %% Submit the regress scripts (must be run from chead on UPenn cluster) - (coarse)
-script_dirs = {...
-    '/data/jet/abock/data/Retinotopy_Templates/AEK/10012014/fit_template_scripts/' ...
-    '/data/jet/abock/data/Retinotopy_Templates/ASB/10272014/fit_template_scripts/' ...
-    '/data/jet/abock/data/Retinotopy_Templates/GKA/10152014/fit_template_scripts/' ...
-    };
-logDir = '/data/jet/abock/LOGS';
-hemis = {'lh' 'rh'};
-%fitTypes = {'V1' 'V2V3'};
-fitTypes = {'V2V3'};
-for ff = 1:length(fitTypes)
-    fitType = fitTypes{ff};
-    for ss = 3%:length(script_dirs)
-        script_dir = script_dirs{ss};
-        cDirs = listdir(script_dir,'dirs');
-        for i = 3 % 1:length(cDirs);
-            if strcmp(cDirs{i},'anat') || strcmp(cDirs{i},'coarse') || strcmp(cDirs{i},'coarseV2V3size')
-                for hh = 1:length(hemis)
-                    hemi = hemis{hh};
-                    system(['rm -rf ' logDir]);
-                    pause(5);
-                    mkdir(logDir);
-                    scriptDir = fullfile(script_dir,cDirs{i},fitType,volFunc);
-                    cd(scriptDir);
-                    inScript=['submit_' hemi '_regress.sh'];
-                    system(['sh ' fullfile(scriptDir,inScript)]);
-                    disp(['running ' fullfile(scriptDir,inScript)]);
-                    pause(5);
-                    system(['qstat > ' fullfile(logDir,'tmp.txt')]);
-                    pause(5);
-                    fid = fopen(fullfile(logDir,'tmp.txt'));
-                    tmp = fread(fid);
-                    fclose(fid);
-                    while ~isempty(tmp)
-                        system(['qstat > ' fullfile(logDir,'tmp.txt')]);
-                        pause(5);
-                        fid = fopen(fullfile(logDir,'tmp.txt'));
-                        tmp = fread(fid);
-                        fclose(fid);
+
+% e.g.
+% cd /data/jet/abock/data/Retinotopy_Templates/AEK/10012014/fit_template_scripts/coarseV2V3size/V2V3/s5.wdrf.tf/
+% sh submit_lh_regress.sh
+% sh submit_rh_regress.sh
+%%
+
+templateType    = 'coarseV2V3size';
+fitType         = 'V2V3';
+V2V3            = 1;
+cluster         = '1'; % run on cluster
+tcPart          = 'full';
+leaveOut        = '0';
+
+hh = 1:5;
+ii = 1:5;
+jj = 1:7;
+kk = 1:7;
+ll = 1:7;
+
+for ss = 1:length(sessions)
+    session_dir = sessions{ss};
+    runs = eval(movieRuns{ss});
+    saveDir = fullfile(session_dir,'pRFs',templateType,volFunc,'Movie',fitType);
+    for hhh = 1:length(hemis);
+        hemi = hemis{hhh};
+        for h = hh
+            for i = ii
+                for j = jj
+                    for k = kk
+                        for l = ll
+                            if ~exist(fullfile(saveDir,...
+                                    [hemi '.' num2str(h) '.' num2str(i) '.' num2str(j) '.' num2str(k) '.' num2str(l) '.varexp.txt']),...
+                                    'file');
+                                regress_template(session_dir,saveDir,templateType,...
+                                    runs,hemi,volFunc,[num2str(h) '.' num2str(i) '.' num2str(j) '.' num2str(k) '.' num2str(l)], ...
+                                    cluster,tcPart,leaveOut,V2V3);
+                            end
+                        end
                     end
-                    fclose('all');
-                    rerun_regress(inScript,scriptDir,logDir);
-                    pause(5);
-                    system(['qstat > ' fullfile(logDir,'tmp.txt')]);
-                    pause(5);
-                    fid = fopen(fullfile(logDir,'tmp.txt'));
-                    tmp = fread(fid);
-                    fclose(fid);
-                    while ~isempty(tmp)
-                        system(['qstat > ' fullfile(logDir,'tmp.txt')]);
-                        pause(5);
-                        fid = fopen(fullfile(logDir,'tmp.txt'));
-                        tmp = fread(fid);
-                        fclose(fid);
-                    end
-                    fclose('all');
                 end
             end
         end
@@ -510,7 +494,7 @@ for ss = 1:length(sessions)
         for hh = 1:length(hemis)
             hemi = hemis{hh};
             disp(hemi);
-            tDir = fullfile(session_dir,'pRFs',templateType,func,'Movie',fitType);
+            tDir = fullfile(session_dir,'pRFs',templateType,volFunc,'Movie',fitType);
             if strcmp(templateType,'anat')
                 vals = load(fullfile(tDir,[hemi '.' templateType '.varexp.txt']));
                 if strcmp(fitType,'V1')

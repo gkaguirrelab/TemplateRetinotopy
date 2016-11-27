@@ -8,7 +8,8 @@ sessions = {...
     '/data/jet/abock/data/Retinotopy_Templates/ASB/10272014/' ...
     '/data/jet/abock/data/Retinotopy_Templates/GKA/10152014'};
 allRuns = {'[3,4,6]' '[2,4,6]' '[2,4,6]'}; % must be a string (!)
-templateType = 'coarse';
+%templateType = 'coarse';
+templateType = 'coarseV2V3size';
 tcPart = 'half';
 func = 's5.wdrf.tf';
 V2V3 = '1';
@@ -19,6 +20,8 @@ hemis = {'lh' 'rh'};
 fitType = 'V2V3';
 badAreas = [4,5]; % visual areas to exclude;
 eLims = [1 5]; % eccentricity lims [low high];
+
+tDirName = 'coarse_model_templates_V2V3size';
 
 %% Create the regress template scripts, for 1st and 2nd Halves
 for ss = 1:length(sessions)
@@ -243,19 +246,19 @@ for ss = 1:length(sessions)
     session_dir = sessions{ss};
     pRFDir = fullfile(session_dir,'pRFs','pRF_templates');
     tDir = fullfile(session_dir,'pRFs',templateType,func,'Movie',fitType);
-    modelTdir = fullfile(session_dir,'pRFs','coarse_model_templates');
+    modelTdir = fullfile(session_dir,'pRFs',tDirName);
     for hh = 1:length(hemis)
         ct = ct + 1;
         hemi = hemis{hh};
         Ecc = load_nifti(fullfile(pRFDir,[hemi '.ecc.pRF.nii.gz']));
         Areas = load_nifti(fullfile(pRFDir,[hemi '.areas.pRF.nii.gz']));
         verts = Ecc.vol<eLims(2) & Ecc.vol>eLims(1) & ~ismember(abs(Areas.vol),badAreas);
-        [varexp,params,sorted_templates] = find_best_template(templateType,tDir,hemi,[],[],[],fitType);
+        [varexp,params,sorted_templates] = find_best_template(templateType,tDir,hemi,fitType);
         dotinds = strfind(sorted_templates{1},'.');
         tempEcc = fullfile(modelTdir,...
-            [hemi '.ecc.' sorted_templates{1}(dotinds(1)+1:dotinds(4)-1) '.nii.gz']);
+            [hemi '.ecc.' sorted_templates{1}(dotinds(1)+1:dotinds(5)-1) '.nii.gz']);
         tempPol = fullfile(modelTdir,...
-            [hemi '.pol.' sorted_templates{1}(dotinds(1)+1:dotinds(4)-1) '.nii.gz']);
+            [hemi '.pol.' sorted_templates{1}(dotinds(1)+1:dotinds(5)-1) '.nii.gz']);
         clear tmp
         for i = 1:length(splitComb)
             inEcc = fullfile(session_dir,'pRFs',...
@@ -275,7 +278,7 @@ ct = 0;
 for ss = 1:length(sessions)
     session_dir = sessions{ss};
     pRFDir = fullfile(session_dir,'pRFs','pRF_templates');
-    modelTdir = fullfile(session_dir,'pRFs','coarse_model_templates');
+    modelTdir = fullfile(session_dir,'pRFs',tDirName);
     for hh = 1:length(hemis)
         ct = ct + 1;
         hemi = hemis{hh};
