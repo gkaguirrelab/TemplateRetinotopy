@@ -30,8 +30,8 @@ for ss = 1:length(sessions)
     system(['rm -rf ' script_dir]);
     mkdir(script_dir);
     runs = allRuns{ss};
-    for i = 0:5
-        tmp = combnk(1:6,i);
+    for i = [0,3,5] % 30, 15, and 5 minute partitions
+        tmp =combnk(1:6,i);
         if isempty(tmp)
             leaveOut = 0;
             leaveOutName = '';
@@ -58,7 +58,7 @@ end
 for ss = 1:length(sessions)
     session_dir = sessions{ss};
     script_dir = fullfile(session_dir,'fit_template_scripts','partition');
-    cDirs = listdir(fullfile(script_dir,'coarse_half_leaveOut*'),'dirs');
+    cDirs = listdir(fullfile(script_dir,[templateType '_' tcPart '_leaveOut*']),'dirs');
     for i = 1:length(cDirs);
         for hh = 1:length(hemis)
             hemi = hemis{hh};
@@ -256,9 +256,9 @@ for ss = 1:length(sessions)
         [varexp,params,sorted_templates] = find_best_template(templateType,tDir,hemi,fitType);
         dotinds = strfind(sorted_templates{1},'.');
         tempEcc = fullfile(modelTdir,...
-            [hemi '.ecc.' sorted_templates{1}(dotinds(1)+1:dotinds(5)-1) '.nii.gz']);
+            [hemi '.ecc.' sorted_templates{1}(dotinds(1)+1:dotinds(6)-1) '.nii.gz']);
         tempPol = fullfile(modelTdir,...
-            [hemi '.pol.' sorted_templates{1}(dotinds(1)+1:dotinds(5)-1) '.nii.gz']);
+            [hemi '.pol.' sorted_templates{1}(dotinds(1)+1:dotinds(6)-1) '.nii.gz']);
         clear tmp
         for i = 1:length(splitComb)
             inEcc = fullfile(session_dir,'pRFs',...
@@ -271,7 +271,7 @@ for ss = 1:length(sessions)
         coarsesplitError.mean(ct) = mean(tmp(:));
     end
 end
-save(fullfile(savedir,'coarsesplitError.mat'),'coarsesplitError');
+%save(fullfile(savedir,'coarsesplitError.mat'),'coarsesplitError');
 %% Compute error in anat templates (non-deformed)
 splitComb = combnk(1:6,3);
 ct = 0;
